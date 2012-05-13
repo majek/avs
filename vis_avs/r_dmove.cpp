@@ -82,10 +82,10 @@ class C_THISCLASS : public C_RBASE2 {
     int m_lastxres, m_lastyres, m_xres, m_yres;
     int *m_wmul;
     int *m_tab;
-    int AVS_EEL_CONTEXTNAME;
+    NSEEL_VMCTX AVS_EEL_CONTEXTNAME;
     double *var_d, *var_b, *var_r, *var_x, *var_y, *var_w, *var_h, *var_alpha;
 		int inited;
-    int codehandle[4];
+    NSEEL_CODEHANDLE codehandle[4];
     int need_recompile;
     int buffern;
     int subpixel,rectcoords,blend,wrap, nomove;

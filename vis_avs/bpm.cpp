@@ -40,11 +40,6 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource.h"
 #include "bpm.h"
 
-#ifdef WA3_COMPONENT
-extern CRITICAL_SECTION g_title_cs;
-extern char g_title[2048];
-#endif
-
 int refineBeat(int isBeat);
 BOOL TCHistStep(BeatType *t, DWORD _Avg, int *_halfDiscriminated, int *_hdPos, DWORD *_lastTC, DWORD TC, int Type);
 void InsertHistStep(BeatType *t, DWORD TC, int Type, int i);
@@ -263,14 +258,7 @@ if (TCNow > lastCheck+1000)
 	{
 	char songName[256];
 	lastCheck=TCNow;
-#ifdef WA3_COMPONENT
-    EnterCriticalSection(&g_title_cs);
-    lstrcpyn(songName,g_title,255);
-    songName[255]=0;
-    LeaveCriticalSection(&g_title_cs);
-#else
 	GetWindowText(winampWnd, songName, 255);
-#endif
 	if (strcmp(songName, lastSongName))
 		{
 		strcpy(lastSongName, songName);

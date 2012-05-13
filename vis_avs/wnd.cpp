@@ -42,20 +42,9 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "avs_eelif.h"
 
-#ifdef WA3_COMPONENT
-#include "wasabicfg.h"
-#include "../studio/studio/api.h"
-#include "../studio/common/metatags.h"
-#include "../studio/bfc/rootwnd.h"
-
-CRITICAL_SECTION g_title_cs;
-char g_title[2048];
-
-#else
 #define WINAMP_NEXT_WINDOW 40063
 #include "wa_ipc.h"
 #include "ff_ipc.h"
-#endif
 
 #define WS_EX_LAYERED	0x80000
 #define LWA_ALPHA		2
@@ -72,10 +61,7 @@ extern int cfg_cancelfs_on_deactivate;
 
 extern char g_noeffectstr[];
 #ifndef WA2_EMBED
-#ifndef WA3_COMPONENT
-static 
-#endif
-int cfg_x=100, cfg_y=100, cfg_w=400, cfg_h=300;
+static int cfg_x=100, cfg_y=100, cfg_w=400, cfg_h=300;
 #endif
 
 #ifndef WA2_EMBED
@@ -92,9 +78,6 @@ int g_reset_vars_on_recompile=1; // fucko: add config for this
 // Wharf integration
 int inWharf=0;
 int need_redock=0;
-#ifdef WA3_COMPONENT
-HWND last_parent;
-#endif
 
 extern int cfg_fs_use_overlay;
 extern int g_config_seh;
@@ -114,14 +97,12 @@ int debug_reg[8];
 void GetClientRect_adj(HWND hwnd, RECT *r)
 {
   GetClientRect(hwnd,r);
-#ifndef WA3_COMPONENT
 #ifndef WA2_EMBED
   if (!inWharf)
   {
     r->right-=7+6;
     r->bottom-=15+5;
   }
-#endif
 #endif
 }
 
@@ -144,11 +125,7 @@ char *scanstr_back(char *str, char *toscan, char *defval)
 		if (t==s) return defval;
 		s=t;
 	}
-}
-
-HWND GetWinampHwnd(void){
-	return hwnd_WinampParent;
-}
+}	
 
 int LoadPreset(int preset)
 {
@@ -290,16 +267,7 @@ void Wnd_GoWindowed(HWND hwnd)
 #ifdef WA2_EMBED
   SendMessage(g_mod->hwndParent,WM_WA_IPC,0,IPC_SET_VIS_FS_FLAG);
 #endif
-#ifdef WA3_COMPONENT
-		DDraw_SetFullScreen(0,cfg_w,cfg_h,cfg_fs_d&2,0);
-    if (last_parent) 
-    {
-      ShowWindow(last_parent,SW_SHOWNA);
-      SetParent(hwnd,last_parent);
-      SetWindowLong(hwnd,GWL_STYLE,WS_VISIBLE|WS_CHILD);
-    }
-    last_parent=0;
-#elif !defined(WA2_EMBED)
+#if !defined(WA2_EMBED)
 		DDraw_SetFullScreen(0,cfg_w-7-6,cfg_h-15-5,cfg_fs_d&2,0);
 #else
     SetParent(hwnd,myWindowState.me);
@@ -313,10 +281,7 @@ void Wnd_GoWindowed(HWND hwnd)
 		if (cfg_cancelfs_on_deactivate) ShowCursor(TRUE);
     int tm=(GetWindowLong(g_mod->hwndParent,GWL_EXSTYLE)&WS_EX_TOPMOST)==WS_EX_TOPMOST;
 
-#ifdef WA3_COMPONENT
-    SetWindowPos(hwnd,tm?HWND_TOPMOST:HWND_NOTOPMOST,0,0,cfg_w,cfg_h,SWP_NOACTIVATE);
-    SetTimer(hwnd,66,500,NULL);
-#elif !defined(WA2_EMBED)
+#if !defined(WA2_EMBED)
     SetWindowPos(hwnd,tm?HWND_TOPMOST:HWND_NOTOPMOST,cfg_x,cfg_y,cfg_w,cfg_h,SWP_NOACTIVATE);
 #else
     PostMessage(GetParent(hwnd),WM_SIZE,0,0);
@@ -333,12 +298,14 @@ void Wnd_GoFullScreen(HWND hwnd)
   if (!DDraw_IsFullScreen())
   {
 
+#if 1
 #ifdef WA2_EMBED
     if (SendMessage(g_mod->hwndParent,WM_WA_IPC,0,IPC_IS_PLAYING_VIDEO)>1)
     {
       PostMessage(hwnd,WM_USER+1667,1,2);
       return;
     }
+#endif
 #endif
 
     extern int cfg_fs_use_overlay;
@@ -372,14 +339,7 @@ void Wnd_GoFullScreen(HWND hwnd)
       if (cfg_cfgwnd_open) ShowWindow(g_hwndDlg,SW_HIDE);
 			if (!cfg_fs_use_overlay) 
       {
-#ifdef WA3_COMPONENT
-        if (!last_parent) 
-        {
-          SetWindowLong(hwnd,GWL_STYLE,WS_VISIBLE);
-          last_parent=SetParent(hwnd,NULL);
-          ShowWindow(last_parent,SW_HIDE);
-        }
-#elif defined(WA2_EMBED)
+#if defined(WA2_EMBED)
         SetWindowLong(hwnd,GWL_STYLE,WS_VISIBLE);
         SetParent(hwnd,NULL);
         HWND w = myWindowState.me;
@@ -446,18 +406,11 @@ int Wnd_Init(struct winampVisModule *this_mod)
 	//	return 1;
 	}
 	{
-#ifdef WA3_COMPONENT
-    INI_FILE = reinterpret_cast<char *>(calloc(WA_MAX_PATH, sizeof(char)));
-		char *p=INI_FILE;
-		GetModuleFileName(NULL,INI_FILE,sizeof(INI_FILE));
-		if (p[0]) while (p[1]) p++;
-		while (p >= INI_FILE && *p != '.') p--;
-		*++p='i';
-		*++p='n';
-		*++p='i';
-		*++p=0;
-#else
+#ifndef REAPLAY_PLUGIN
     INI_FILE = (char*)SendMessage(this_mod->hwndParent,WM_WA_IPC,0,IPC_GETINIFILE);
+#else
+    extern const char *(*get_ini_file)();
+    INI_FILE = (char *)get_ini_file();
 #endif
 #define AVS_SECTION "AVS"
 #ifdef LASER
@@ -551,25 +504,21 @@ int Wnd_Init(struct winampVisModule *this_mod)
     // determine bounding rectangle for window
   }
 #endif
-#ifdef WA3_COMPONENT
-  int styles=WS_VISIBLE|WS_CHILD|WS_CLIPCHILDREN|WS_CLIPSIBLINGS;
-  HWND par = this_mod->hwndParent;
-#else
 #ifndef WA2_EMBED
   int styles=WS_VISIBLE;
   HWND par = g_minimized?NULL:this_mod->hwndParent;
 #else
-  int styles=WS_VISIBLE|WS_CHILDWINDOW|WS_OVERLAPPED|WS_CLIPCHILDREN|WS_CLIPSIBLINGS;
-  HWND (*e)(embedWindowState *v);
+  int styles=WS_CHILDWINDOW|WS_OVERLAPPED|WS_CLIPCHILDREN|WS_CLIPSIBLINGS;
+  HWND (*e)(embedWindowState *v) = NULL;
+#ifndef REAPLAY_PLUGIN
   *(void**)&e = (void *)SendMessage(this_mod->hwndParent,WM_WA_IPC,(LPARAM)0,IPC_GET_EMBEDIF);
   HWND par=0;
   if (e) par=e(&myWindowState);
-  
-  if (par)
-    SetWindowText(par,"AVS");
-
-  g_hWA2ParentWindow=par;
+  if (par) SetWindowText(par,"AVS");
+#else
+  HWND par = this_mod->hwndParent;
 #endif
+  g_hWA2ParentWindow=par;
 #endif
 
 #ifndef WA2_EMBED
@@ -587,15 +536,13 @@ int Wnd_Init(struct winampVisModule *this_mod)
 		MessageBox(this_mod->hwndParent,"Error creating window","Error",MB_OK);
 		return 1;
   }
+#ifndef REAPLAY_PLUGIN
 #ifdef WA2_EMBED
+  ShowWindow(g_hwnd,SW_SHOWNA);
   ShowWindow(par,SW_SHOWNA);
 #endif
-#ifndef WA3_COMPONENT
+#endif
   SetTransparency(g_hwnd,cfg_trans,cfg_trans_amount);
-#endif
-#ifdef WA3_COMPONENT
-  InitializeCriticalSection(&g_title_cs);
-#endif
   return 0;
 }
 
@@ -691,11 +638,6 @@ void Wnd_Quit(void)
       WriteInt(debugreg,debug_reg[x]);
     }
 	}
-#ifdef WA3_COMPONENT
-  DeleteCriticalSection(&g_title_cs);
-  if(INI_FILE)
-    free(INI_FILE);
-#endif
 }
 
 
@@ -723,7 +665,6 @@ void toggleWharfAmpDock(HWND hwnd)
     inWharf=1;
 	  GetWindowRect(Wharf, &r);
     SetParent(hwnd, Wharf);
-#ifndef WA3_COMPONENT
 #ifndef WA2_EMBED
 	  SetWindowLong(hwnd, GWL_STYLE, (GetWindowLong(hwnd,GWL_STYLE)&(~WS_POPUP))|WS_CHILD);
 #else
@@ -734,9 +675,6 @@ void toggleWharfAmpDock(HWND hwnd)
     }
     if (!SendMessage(g_mod->hwndParent, WM_WA_IPC, (int)w, IPC_FF_ISMAINWND)) ShowWindow(w,SW_HIDE);
     else ShowWindow(g_hWA2ParentWindow,SW_HIDE);
-#endif
-#else
-    ShowWindow(GetParent(last_parent),SW_HIDE);
 #endif
 	  SetWindowPos(hwnd, NULL, 0, 0, r.right-r.left, r.bottom-r.top, SWP_NOZORDER|SWP_NOACTIVATE);
 	  DDraw_Resize(r.right-r.left, r.bottom-r.top,cfg_fs_d&2);
@@ -751,14 +689,6 @@ void toggleWharfAmpDock(HWND hwnd)
     ShowWindow(GetDlgItem(g_hwndDlg,IDC_RRECT),SW_HIDE);
     SetWindowPos(GetDlgItem(g_hwndDlg,IDC_TREE1),NULL,0,0,r2.right-r2.left,r.bottom - r2.top - 2,SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);
 
-#ifdef WA3_COMPONENT
-    ShowWindow(GetParent(last_parent),SW_SHOWNA);
-	  SetParent(hwnd, last_parent);
-    last_parent=0;
-    DDraw_Resize(cfg_w,cfg_h,cfg_fs_d&2);
-    SetWindowPos(hwnd,0,0,0,cfg_w,cfg_h,SWP_NOACTIVATE|SWP_NOZORDER);
-    SetTimer(hwnd,66,500,NULL);
-#else
 #ifndef WA2_EMBED
 	  SetWindowLong(hwnd, GWL_STYLE, (GetWindowLong(hwnd,GWL_STYLE)&(~(WS_CHILD|WS_VISIBLE)))|WS_POPUP);
 	  SetParent(hwnd, NULL);
@@ -783,7 +713,6 @@ void toggleWharfAmpDock(HWND hwnd)
 
     //SetWindowPos(hwnd,0,0,0,cfg_w,cfg_h,SWP_NOACTIVATE|SWP_NOZORDER);
     //SetTimer(hwnd,66,500,NULL);
-#endif
 #endif
     InvalidateRect(Wharf,NULL,TRUE);
 	  inWharf=0;
@@ -1424,14 +1353,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		  if (wParam == 32)
 		  {
         DWORD a;
-#ifdef WA3_COMPONENT
-        EnterCriticalSection(&g_title_cs);
-        const char *pitem=api->core_getCurrent(0);    
-        if (!pitem || api->metadb_getMetaData(pitem, MT_NAME, g_title, 2047, MDT_STRINGZ) < 1)
-          STRCPY(g_title,"");
-        LeaveCriticalSection(&g_title_cs);
-#endif
-        
+       
+#ifndef REAPLAY_PLUGIN
         if (SendMessageTimeout(hwnd_WinampParent,WM_USER,(WPARAM)0,201,SMTO_BLOCK,1000,&a) && a)
         {
           if (strcmp(g_skin_name,(char*)a))
@@ -1440,6 +1363,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             PostMessage(hwnd,WM_DISPLAYCHANGE,0,0);
           }
         }
+#endif
+
         if (g_rnd_cnt>=0 && g_rnd_cnt++ >= max(cfg_fs_rnd_time,1))
         {
           g_rnd_cnt=0;
@@ -1536,11 +1461,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
       hFrameDC=(HDC)CreateCompatibleDC(NULL);
       hFrameBitmap_old=(HBITMAP)SelectObject(hFrameDC,hFrameBitmap);
 #endif
-#ifndef WA3_COMPONENT //FG> This totally fucks up a child layered window painting in wa3, i'm not even sure that's a good thing for wa2... basically the child window gets excluded from the layered update and ends up updating behind the layer, on top of the desktop
+      //FG> This totally fucks up a child layered window painting in wa3, i'm not even sure that's a good thing for wa2... basically the child window gets excluded from the layered update and ends up updating behind the layer, on top of the desktop
 #ifndef WA2_EMBED
       SetWindowLong(hwnd,GWL_STYLE,0);
 			SetWindowPos(hwnd,NULL,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOZORDER|SWP_DRAWFRAME|SWP_NOACTIVATE);
-#endif
 #endif
 			SetTimer(hwnd,32,1000,NULL);
 		return 0;
@@ -1555,7 +1479,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 					return HTCLIENT;
         if (DDraw_IsFullScreen() || (x > r.right-12 && x < r.right-3 && y > r.top+3 && y < r.top+13))
           return HTCLIENT;
-#ifndef WA3_COMPONENT
         if (x < r.left+6 && y > r.bottom-6) return HTBOTTOMLEFT;
         if (x > r.right-6 && y > r.bottom-6) return HTBOTTOMRIGHT;
         if (x < r.left+6 && y < r.top+6) return HTTOPLEFT;
@@ -1565,7 +1488,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
         if (x < r.left+6) return HTLEFT;
         if (x > r.right-6) return HTRIGHT;
         if (y < r.top+15) return HTCAPTION;
-#endif
       }
     return HTCLIENT;
 #endif
@@ -1586,17 +1508,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
       DeleteObject(hFrameBitmap);
 #endif
       g_ThreadQuit=1;
-#ifndef WA3_COMPONENT
       if (!g_minimized)
       {
         PostQuitMessage(0);
       }
-#endif
 		return 0;
     case WM_MOVE:
 			if (!DDraw_IsFullScreen() && !inWharf) 
       {
-#ifndef WA3_COMPONENT
 #ifndef WA2_EMBED
 				int w;
 				RECT r;
@@ -1689,7 +1608,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 				  cfg_h=r.bottom-r.top;
 				}
 #endif
-#endif
 			}
     return 0;
     case WM_GETMINMAXINFO:
@@ -1714,14 +1632,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   		    if (!inWharf)
 					{
 #ifndef WA2_EMBED
-#ifndef WA3_COMPONENT
   				  RECT r; 
             GetWindowRect(hwnd,&r);
 				    cfg_x=r.left;
 				    cfg_y=r.top;
 				    cfg_w=r.right-r.left;
 				    cfg_h=r.bottom-r.top;
-#endif
 #endif
             DDraw_BeginResize();
             KillTimer(hwnd,30);
@@ -1730,7 +1646,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
         }
 			}
     break;
-#ifndef WA3_COMPONENT
 		case WM_WINDOWPOSCHANGING:
 			{
 				LPWINDOWPOS lpwp=(LPWINDOWPOS)lParam;
@@ -1749,13 +1664,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 				}
 			}
 			return 0;
-#endif
     case WM_PAINT:
       if (!DDraw_IsFullScreen()) 
       {
         PAINTSTRUCT ps;
         HDC hdc=BeginPaint(hwnd,&ps);
-#ifndef WA3_COMPONENT
 #ifndef WA2_EMBED
         RECT r;
         HDC tempdc=CreateCompatibleDC(hdc);
@@ -1782,7 +1695,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
         SelectObject(tempdc,oldbm);
         DeleteObject(tempbm);
         DeleteObject(tempdc);
-#endif
 #endif
         EndPaint(hwnd,&ps);
         return 0;

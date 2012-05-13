@@ -58,11 +58,11 @@ class C_THISCLASS : public C_RBASE {
     int blend,subpixel;
 
     int m_lastw,m_lasth;
-    int AVS_EEL_CONTEXTNAME;
+    NSEEL_VMCTX AVS_EEL_CONTEXTNAME;
     double *var_x, *var_y, *var_w, *var_h, *var_b, *var_alpha;
     double max_d;
 		int inited;
-    int codehandle[3];
+    NSEEL_CODEHANDLE codehandle[3];
     int need_recompile;
     CRITICAL_SECTION rcs;
 };

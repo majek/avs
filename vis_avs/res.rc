@@ -584,18 +584,18 @@ END
 
 IDD_DIALOG2 DIALOG DISCARDABLE  0, 0, 205, 150
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "About AVS"
+CAPTION "About CH-AVS"
 FONT 8, "MS Sans Serif"
 BEGIN
     DEFPUSHBUTTON   "Close",IDOK,77,129,50,14
     LTEXT           "version string",IDC_VERSTR,7,7,191,8
-    LTEXT           "Copyright (C) 1998-2006 Nullsoft",IDC_STATIC,7,16,191,8
+    LTEXT           "Copyright (C) 1998-2004 Nullsoft",IDC_STATIC,7,16,191,8
     CTEXT           "Justin Frankel, Francis Gastellu, Christophe Thibault\r\nBrennan Underwood && mig",
                     IDC_STATIC,22,85,168,19
-    CTEXT           "Advanced Visualization Studio:\nWhat we (at Nullsoft) use to (try to) get chicks at parties.",
-                    IDC_STATIC,7,26,191,17
-    CTEXT           "Feel free to try to do the same (you are welcome to use AVS at parties, clubs, concerts, and whatnot. Just give credit where credit is due).",
-                    IDC_STATIC,7,44,191,24
+    LTEXT           "Portions Copyright (C) 2010 Cockos Incorporated\r\r\nThis software is BSD-licensed open source.",
+                    IDC_STATIC,7,26,191,26
+    CTEXT           "You are welcome to use AVS at parties, clubs, concerts, and whatnot. Just give credit where credit is due.",
+                    IDC_STATIC,7,54,191,17
     LTEXT           "Love,",IDC_STATIC,7,74,19,8
     CTEXT           "Special thanks to Steven Wittens and Tom Holden for their contributions.",
                     IDC_STATIC,7,107,191,19

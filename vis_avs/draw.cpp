@@ -35,11 +35,6 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "r_defs.h"
 #include "vis.h"
 
-#ifdef WA3_COMPONENT
-extern CRITICAL_SECTION g_title_cs;
-extern char g_title[2048];
-#endif
-
 extern HINSTANCE g_hInstance;
 
 #define RESIZE_ONRESIZE
@@ -843,11 +838,6 @@ static void do_gettitle()
   if (draw_title_p < 1 && --draw_title_p < -7)
   {
     char this_title[2048]={0,};
-#ifdef WA3_COMPONENT
-    EnterCriticalSection(&g_title_cs);
-    strcpy(this_title,g_title);
-    LeaveCriticalSection(&g_title_cs);
-#else
     char *p;
 	  if (IsWindow(hwnd_WinampParent)) 
     {
@@ -866,7 +856,6 @@ static void do_gettitle()
 	  if (p >= this_title) p--;
 	  while (p >= this_title && *p == ' ') p--;
 	  *++p=0;
-#endif
 	  if (lstrcmpi(this_title,last_title))
 	  {
 		  strcpy(last_title,this_title);
@@ -1317,26 +1306,18 @@ abort_thingy:
     {
       if (!g_windowed_dsize)
       {
-#ifdef WA3_COMPONENT
-        BitBlt(out,0,0,g_w-g_noshoww,g_h,in2?in2:in1,0,0,SRCCOPY);
-#else
 #ifndef WA2_EMBED
         BitBlt(out,inWharf?0:7,inWharf?0:15,g_w-g_noshoww,g_h,in2?in2:in1,0,0,SRCCOPY);
 #else
         BitBlt(out,0,0,g_w-g_noshoww,g_h,in2?in2:in1,0,0,SRCCOPY);
 #endif
-#endif
       }
       else
       {
-#ifdef WA3_COMPONENT
-        StretchBlt(out,0,0,g_dsw,g_dsh,in2?in2:in1,0,0,g_w,g_h,SRCCOPY);
-#else
 #ifndef WA2_EMBED
         StretchBlt(out,inWharf?0:7,inWharf?0:15,g_dsw,g_dsh,in2?in2:in1,0,0,g_w,g_h,SRCCOPY);
 #else
         StretchBlt(out,0,0,g_dsw,g_dsh,in2?in2:in1,0,0,g_w,g_h,SRCCOPY);
-#endif
 #endif
       }
   		ReleaseDC(g_hwnd,out);

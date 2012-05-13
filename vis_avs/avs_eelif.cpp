@@ -28,16 +28,9 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include <windows.h>
+#include "../WDL/eel2/ns-eel-int.h"
+#include "../WDL/eel2/ns-eel-addfuncs.h"
 #include "avs_eelif.h"
-#include "../ns-eel/ns-eel-addfuncs.h"
-
-#ifdef AVS_MEGABUF_SUPPORT
-#include "../ns-eel/megabuf.h"
-#endif
-
-static void gmegabuf_cleanup();
-void _asm_gmegabuf(void);
-void _asm_gmegabuf_end(void);
 
 
 
@@ -87,19 +80,19 @@ static double NSEEL_CGEN_CALL getvis(unsigned char *visdata, int bc, int bw, int
   }
 }
 
-static double NSEEL_CGEN_CALL  getspec_(double *band, double *bandw, double *chan)
+static double NSEEL_CGEN_CALL  getspec_(void *_this, double *band, double *bandw, double *chan)
 {
   if (!g_evallib_visdata) return 0.0;
   return getvis((unsigned char *)g_evallib_visdata,(int)(*band*576.0),(int)(*bandw*576.0),(int)(*chan+0.5),0)*0.5;
 }
 
-static double NSEEL_CGEN_CALL getosc_(double *band, double *bandw, double *chan)
+static double NSEEL_CGEN_CALL getosc_(void *_this, double *band, double *bandw, double *chan)
 {
   if (!g_evallib_visdata) return 0.0;
   return getvis((unsigned char *)g_evallib_visdata+576*2,(int)(*band*576.0),(int)(*bandw*576.0),(int)(*chan+0.5),128);
 }
 
-static double NSEEL_CGEN_CALL gettime_(double *sc)
+static double NSEEL_CGEN_CALL gettime_(void *_this, double *sc)
 {
   int ispos;
   if ((ispos=(*sc > -1.001 && *sc < -0.999)) || (*sc > -2.001 && *sc < -1.999))
@@ -118,7 +111,7 @@ static double NSEEL_CGEN_CALL gettime_(double *sc)
   return GetTickCount()/1000.0 - *sc;
 }
 
-static double NSEEL_CGEN_CALL setmousepos_(double *x, double *y)
+static double NSEEL_CGEN_CALL setmousepos_(void *_this, double *x, double *y)
 {
   //fucko: implement me
   return 0.0;
@@ -127,7 +120,7 @@ static double NSEEL_CGEN_CALL setmousepos_(double *x, double *y)
 
 extern double DDraw_translatePoint(POINT p, int isY);
 
-static double NSEEL_CGEN_CALL getmouse_(double *which)
+static double NSEEL_CGEN_CALL getmouse_(void *_this, double *which)
 {
   int w=(int)(*which+0.5);
 
@@ -146,85 +139,35 @@ static double NSEEL_CGEN_CALL getmouse_(double *which)
   return 0.0;
 }
 
-static double (NSEEL_CGEN_CALL *__getosc)(double *,double *,double *) = &getosc_;
-__declspec ( naked ) void _asm_getosc(void)
-{
-  FUNC3_ENTER
-
-  *__nextBlock = __getosc(parm_c,parm_b,parm_a);
-
-  FUNC_LEAVE
-}
-__declspec ( naked ) void _asm_getosc_end(void) {}
-
-
-static double (NSEEL_CGEN_CALL *__getspec)(double *,double *,double *) = &getspec_;
-__declspec ( naked ) void _asm_getspec(void)
-{
-  FUNC3_ENTER
-
-  *__nextBlock = __getspec(parm_c,parm_b,parm_a);
-
-  FUNC_LEAVE
-}
-__declspec ( naked ) void _asm_getspec_end(void) {}
-
-static double (NSEEL_CGEN_CALL *__gettime)(double *) = &gettime_;
-__declspec ( naked ) void _asm_gettime(void)
-{
-  FUNC1_ENTER
-  
-  *__nextBlock = __gettime(parm_a);
-
-  FUNC_LEAVE
-}
-__declspec ( naked ) void _asm_gettime_end(void) {}
-
-
-static double (NSEEL_CGEN_CALL *__getmouse)(double *) = &getmouse_;
-__declspec ( naked ) void _asm_getmouse(void)
-{
-  FUNC1_ENTER
-  
-  *__nextBlock = __getmouse(parm_a);
-
-  FUNC_LEAVE
-}
-__declspec ( naked ) void _asm_getmouse_end(void) {}
-
-
-static double (NSEEL_CGEN_CALL *__setmousepos)(double *,double *) = &setmousepos_;
-__declspec ( naked ) void _asm_setmousepos(void)
-{
-  FUNC2_ENTER
-  
-  *__nextBlock = __setmousepos(parm_a,parm_b);
-
-  FUNC_LEAVE
-}
-__declspec ( naked ) void _asm_setmousepos_end(void) {}
-
 
 
 /////////////////////// end AVS specific script functions
+
+void NSEEL_HOSTSTUB_EnterMutex()
+{
+  EnterCriticalSection(&g_eval_cs);
+}
+void NSEEL_HOSTSTUB_LeaveMutex()
+{
+  LeaveCriticalSection(&g_eval_cs);
+}
 
 void AVS_EEL_IF_init()
 {
   InitializeCriticalSection(&g_eval_cs);
   NSEEL_init();
-  NSEEL_addfunction("getosc",3,(int)_asm_getosc,(int)_asm_getosc_end-(int)_asm_getosc);
-  NSEEL_addfunction("getspec",3,(int)_asm_getspec,(int)_asm_getspec_end-(int)_asm_getspec);
-  NSEEL_addfunction("gettime",1,(int)_asm_gettime,(int)_asm_gettime_end-(int)_asm_gettime);
-  NSEEL_addfunction("getkbmouse",1,(int)_asm_getmouse,(int)_asm_getmouse_end-(int)_asm_getmouse);
-  NSEEL_addfunction("setmousepos",2,(int)_asm_setmousepos,(int)_asm_setmousepos_end-(int)_asm_setmousepos);
-#ifdef AVS_MEGABUF_SUPPORT
-    NSEEL_addfunctionex("megabuf",1,(int)_asm_megabuf,(int)_asm_megabuf_end-(int)_asm_megabuf,megabuf_ppproc);
-    NSEEL_addfunction("gmegabuf",1,(int)_asm_gmegabuf,(int)_asm_gmegabuf_end-(int)_asm_gmegabuf);
-#endif
+
+  // todo: check to see that parameter orders are correct
+  NSEEL_addfunctionex("getosc",3,(char *)_asm_generic3parm_retd,(char *)_asm_generic3parm_retd_end-(char *)_asm_generic3parm_retd,NSEEL_PProc_THIS,(void*)getosc_);
+  NSEEL_addfunctionex("getspec",3,(char *)_asm_generic3parm_retd,(char *)_asm_generic3parm_retd_end-(char *)_asm_generic3parm_retd,NSEEL_PProc_THIS,(void*)getspec_);
+
+  NSEEL_addfunctionex("gettime",1,(char *)_asm_generic1parm_retd,(char *)_asm_generic1parm_retd_end-(char *)_asm_generic1parm_retd,NSEEL_PProc_THIS,(void*)gettime_);
+  NSEEL_addfunctionex("getkbmouse",1,(char *)_asm_generic1parm_retd,(char *)_asm_generic1parm_retd_end-(char *)_asm_generic1parm_retd,NSEEL_PProc_THIS,(void*)getmouse_);
+
+  NSEEL_addfunctionex("setmousepos",2,(char *)_asm_generic2parm_retd,(char *)_asm_generic2parm_retd_end-(char *)_asm_generic2parm_retd,NSEEL_PProc_THIS,(void*)setmousepos_);
 }
 void AVS_EEL_IF_quit()
 {
-  gmegabuf_cleanup();
   DeleteCriticalSection(&g_eval_cs);
   NSEEL_quit();
 }
@@ -246,11 +189,11 @@ static void movestringover(char *str, int amount)
   memcpy(str+amount,tmp,l+1);
 }
 
-int AVS_EEL_IF_Compile(int context, char *code)
+NSEEL_CODEHANDLE AVS_EEL_IF_Compile(void *context, char *code)
 {
   NSEEL_CODEHANDLE ret;
   EnterCriticalSection(&g_eval_cs);
-  ret=NSEEL_code_compile((NSEEL_VMCTX)context,code);
+  ret=NSEEL_code_compile((NSEEL_VMCTX)context,code,0);
   if (!ret)
   {
     if (g_log_errors)
@@ -268,10 +211,10 @@ int AVS_EEL_IF_Compile(int context, char *code)
     }
   }
   LeaveCriticalSection(&g_eval_cs);
-  return (int)ret;
+  return ret;
 }
 
-void AVS_EEL_IF_Execute(void *handle, char visdata[2][2][576])
+void AVS_EEL_IF_Execute(NSEEL_CODEHANDLE handle, char visdata[2][2][576])
 {
   if (handle)
   {
@@ -283,76 +226,10 @@ void AVS_EEL_IF_Execute(void *handle, char visdata[2][2][576])
   }
 }
 
-void AVS_EEL_IF_Free(int handle)
-{
-  NSEEL_code_free((NSEEL_CODEHANDLE)handle);
-}
-
 
 void AVS_EEL_IF_resetvars(NSEEL_VMCTX ctx)
 {
-#ifdef AVS_MEGABUF_SUPPORT
-  megabuf_cleanup(ctx);
-#endif
-  NSEEL_VM_resetvars(ctx);
+  NSEEL_VM_freeRAM(ctx);
+  NSEEL_VM_remove_all_nonreg_vars(ctx);
 }
 
-void AVS_EEL_IF_VM_free(NSEEL_VMCTX ctx)
-{
-#ifdef AVS_MEGABUF_SUPPORT
-  megabuf_cleanup(ctx);
-#endif
-  NSEEL_VM_free(ctx);
-}
-
-
-
-
-//////////////////////////////
-static double *gmb_blocks[MEGABUF_BLOCKS];
-
-static void gmegabuf_cleanup()
-{
-  int x;
-  for (x = 0; x < MEGABUF_BLOCKS; x ++)
-  {
-    if (gmb_blocks[x]) GlobalFree(gmb_blocks[x]);
-    gmb_blocks[x]=0;
-  }
-}
-
-static double * NSEEL_CGEN_CALL gmegabuf_(double *which)
-{
-  static double error;
-  int w=(int)(*which + 0.0001);
-  int whichblock = w/MEGABUF_ITEMSPERBLOCK;
-
-  if (w >= 0 && whichblock >= 0 && whichblock < MEGABUF_BLOCKS)
-  {
-    int whichentry = w%MEGABUF_ITEMSPERBLOCK;
-    if (!gmb_blocks[whichblock])
-    {
-      gmb_blocks[whichblock]=(double *)GlobalAlloc(GPTR,sizeof(double)*MEGABUF_ITEMSPERBLOCK);
-    }
-    if (gmb_blocks[whichblock])
-      return &gmb_blocks[whichblock][whichentry];
-  }
-
-  return &error;
-}
-
-static double * (NSEEL_CGEN_CALL *__gmegabuf)(double *) = &gmegabuf_;
-__declspec ( naked ) void _asm_gmegabuf(void)
-{
-  double *parm_a, *__nextBlock;
-  __asm { mov edx, 0xFFFFFFFF }
-  __asm { mov ebp, esp }
-  __asm { sub esp, __LOCAL_SIZE }
-  __asm { mov dword ptr parm_a, eax }
-  
-  __nextBlock = __gmegabuf(parm_a);
-
-  __asm { mov eax, __nextBlock } // this is custom, returning pointer
-  __asm { mov esp, ebp }
-}
-__declspec ( naked ) void _asm_gmegabuf_end(void) {}

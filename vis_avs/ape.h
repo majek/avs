@@ -70,7 +70,7 @@ typedef struct
   // you should only use these when no code handles are around (i.e. it's okay to use these before
   // compiling code, or right before you are going to recompile your code. 
   void (*resetVM)(VM_CONTEXT);
-  double * (*regVMvariable)(VM_CONTEXT, char *name);
+  double * (*regVMvariable)(VM_CONTEXT, const char *name);
 
   // compile code to a handle
   VM_CODEHANDLE (*compileVMcode)(VM_CONTEXT, char *code);

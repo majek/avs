@@ -66,9 +66,9 @@ class C_THISCLASS : public C_RBASE {
 	int blend;
 	int blendavg;
 	int nF;
-	int codeHandle;
-	int codeHandleBeat;
-	int codeHandleInit;
+	NSEEL_CODEHANDLE codeHandle;
+	NSEEL_CODEHANDLE codeHandleBeat;
+	NSEEL_CODEHANDLE codeHandleInit;
 	double *var_x;
 	double *var_y;
 	double *var_isBeat;
@@ -79,7 +79,7 @@ class C_THISCLASS : public C_RBASE {
 	int showlight;
   int initted;
 	int invert;
-  int AVS_EEL_CONTEXTNAME;
+  NSEEL_VMCTX AVS_EEL_CONTEXTNAME;
 	int oldstyle;
 	int buffern;
     CRITICAL_SECTION rcs;

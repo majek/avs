@@ -41,9 +41,10 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 
-#ifdef WA3_COMPONENT
-#include "wasabicfg.h"
-#include "../studio/studio/api.h"
+#ifdef REAPLAY_PLUGIN
+#include "../../jmde/reaper_plugin.h"
+const char *(*get_ini_file)();
+int (*vuGetVisData)(char *vdata, int size);
 #endif
 
 #include "avs_eelif.h"
@@ -55,11 +56,11 @@ HINSTANCE g_hInstance;
 
 char *verstr=
 #ifndef LASER
-"Advanced Visualization Studio"
+"Cockos Happy AVS"
 #else
 "AVS/Laser"
 #endif
-" v2.81d"
+" v2.9"
 ;
 
 static unsigned int WINAPI RenderThread(LPVOID a);
@@ -72,14 +73,10 @@ static void quit(struct winampVisModule *this_mod);
 HANDLE g_hThread;
 volatile int g_ThreadQuit;
 
-#ifndef WA3_COMPONENT
 static CRITICAL_SECTION g_cs;
-#endif
 
 static unsigned char g_visdata[2][2][576];
 static int g_visdata_pstat;
-
-#ifndef WA3_COMPONENT
 
 static winampVisModule *getModule(int which);
 static winampVisHeader hdr = { VIS_HDRVER, verstr, getModule };
@@ -118,7 +115,6 @@ static winampVisModule *getModule(int which)
 	if (which==0) return &mod;
 	return 0;
 }
-#endif
 
 BOOL CALLBACK aboutProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,LPARAM lParam)
 {
@@ -188,11 +184,7 @@ static int init(struct winampVisModule *this_mod)
   GetSystemTimeAsFileTime(&ft);
   srand(ft.dwLowDateTime|ft.dwHighDateTime^GetCurrentThreadId());
 	g_hInstance=this_mod->hDllInstance;
-#ifdef WA3_COMPONENT
-	GetModuleFileName(GetModuleHandle(NULL),g_path,MAX_PATH);
-#else
 	GetModuleFileName(g_hInstance,g_path,MAX_PATH);
-#endif
 	char *p=g_path+strlen(g_path);
 	while (p > g_path && *p != '\\') p--;
 	*p = 0;
@@ -214,11 +206,6 @@ static int init(struct winampVisModule *this_mod)
   }
 #endif
 
-
-#ifdef WA3_COMPONENT
-  strcat(g_path,"\\wacs\\data");
-#endif
-
 #ifdef LASER
   strcat(g_path,"\\avs_laser");
 #else
@@ -226,9 +213,7 @@ static int init(struct winampVisModule *this_mod)
 #endif
   CreateDirectory(g_path,NULL);
 
-#ifndef WA3_COMPONENT
 	InitializeCriticalSection(&g_cs);
-#endif
 	InitializeCriticalSection(&g_render_cs);
 	g_ThreadQuit=0;
 	g_visdata_pstat=1;
@@ -265,7 +250,6 @@ static int init(struct winampVisModule *this_mod)
 
 static int render(struct winampVisModule *this_mod)
 {
-#ifndef WA3_COMPONENT
 	int x,avs_beat=0,b;
 	if (g_ThreadQuit) return 1;
   EnterCriticalSection(&g_cs);
@@ -329,7 +313,6 @@ static int render(struct winampVisModule *this_mod)
 	if (b) g_is_beat=1;
 	g_visdata_pstat=0;
 	LeaveCriticalSection(&g_cs);
-#endif
   return 0;
 }
 
@@ -366,9 +349,7 @@ static void quit(struct winampVisModule *this_mod)
     AVS_EEL_IF_quit();
 
     DS("cleaning up critsections\n");
-#ifndef WA3_COMPONENT
 		DeleteCriticalSection(&g_cs);
-#endif
 		DeleteCriticalSection(&g_render_cs);    
 
     DS("smp_cleanupthreads\n");
@@ -380,28 +361,6 @@ static void quit(struct winampVisModule *this_mod)
   hRich=0;
 #endif
 }
-
-#ifdef WA3_COMPONENT
-static winampVisModule dummyMod;
-
-void init3(void)
-{
-  extern HWND g_wndparent;
-  dummyMod.hwndParent=g_wndparent;
-  dummyMod.hDllInstance=g_hInstance;
-  init(&dummyMod);
-}
-
-void quit3(void)
-{
-  extern HWND last_parent;
-  if (last_parent) 
-  {
-    ShowWindow(GetParent(last_parent),SW_SHOWNA);
-  }
-  quit(&dummyMod);
-}
-#endif
 
 #define FPS_NF 64
 
@@ -417,10 +376,16 @@ static unsigned int WINAPI RenderThread(LPVOID a)
 	while (!g_ThreadQuit)
 	{
 		int w,h,*fb=NULL, *fb2=NULL,beat=0;
-#ifdef WA3_COMPONENT
-    char visdata[576*2*2];
-    int ret=api->core_getVisData(0,visdata,sizeof(visdata));
 
+#ifdef REAPLAY_PLUGIN
+    if(!IsWindowVisible(g_hwnd)) 
+    {
+      Sleep(1);
+      continue;
+    }
+
+    char visdata[576*2*2];
+    int ret = vuGetVisData(visdata, sizeof(visdata));
 		if (!ret) 
     {
       memset(&vis_data[0][0][0],0,576*2*2);
@@ -475,8 +440,6 @@ static unsigned int WINAPI RenderThread(LPVOID a)
 	    beat=refineBeat(beat);
 //      LeaveCriticalSection(&g_title_cs);
     }
-
-
 #else
 		EnterCriticalSection(&g_cs);
 		memcpy(&vis_data[0][0][0],&g_visdata[0][0][0],576*2*2);
@@ -530,3 +493,37 @@ static unsigned int WINAPI RenderThread(LPVOID a)
   _endthreadex(0);
 	return 0;
 }
+
+#ifdef REAPLAY_PLUGIN
+static winampVisModule dummyMod;
+extern "C"
+{
+  
+  REAPER_PLUGIN_DLL_EXPORT int REAPER_PLUGIN_ENTRYPOINT(REAPER_PLUGIN_HINSTANCE hInstance, reaper_plugin_info_t *rec)
+  {
+    g_hInstance=hInstance;
+    if (rec)
+    {
+      if (rec->caller_version != REAPER_PLUGIN_VERSION || !rec->GetFunc)
+        return 0;
+
+      *((void **)&get_ini_file) = rec->GetFunc("get_ini_file");
+      *((void **)&vuGetVisData) = rec->GetFunc("vuGetVisData");
+      if (!get_ini_file || !vuGetVisData)
+        return 0;
+
+      dummyMod.hwndParent=rec->hwnd_main;
+      dummyMod.hDllInstance=g_hInstance;
+      init(&dummyMod);
+
+      return 1;
+    }
+    else
+    {
+      quit(&dummyMod);
+      return 0;
+    }
+  }
+  
+};
+#endif

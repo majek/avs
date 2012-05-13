@@ -30,6 +30,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _R_LIST_H_
 #define _R_LIST_H_
 
+#include "avs_eelif.h"
 #define LIST_ID 0xfffffffe
 
 extern unsigned char blendtable[256][256];
@@ -64,11 +65,11 @@ class C_RenderListClass : public C_RBASE {
     RString effect_exp[2];
 
 		int inited;
-    int codehandle[4];
+    NSEEL_CODEHANDLE codehandle[4];
     int need_recompile;
     CRITICAL_SECTION rcs;
 
-    int AVS_EEL_CONTEXTNAME;
+    NSEEL_VMCTX AVS_EEL_CONTEXTNAME;
     double *var_beat, *var_alphain, *var_alphaout, *var_enabled, *var_clear, *var_w, *var_h;
     int isstart;
 

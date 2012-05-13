@@ -127,11 +127,11 @@ class C_THISCLASS : public C_RBASE {
     int m_lastw,m_lasth;
     int *m_wmul;
     int *m_tab;
-    int AVS_EEL_CONTEXTNAME;
+    NSEEL_VMCTX AVS_EEL_CONTEXTNAME;
     double *var_d, *var_b;
     double max_d;
 		int inited;
-    int codehandle[4];
+    NSEEL_CODEHANDLE codehandle[4];
     int need_recompile;
     int subpixel;
     CRITICAL_SECTION rcs;

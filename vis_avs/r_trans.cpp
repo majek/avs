@@ -423,7 +423,7 @@ int C_THISCLASS::smp_begin(int max_threads, char visdata[2][2][576], int isBeat,
     }
     else if (trans_effect == 32767 || effect_uses_eval(trans_effect))
     {
-      int AVS_EEL_CONTEXTNAME;
+      NSEEL_VMCTX AVS_EEL_CONTEXTNAME;
       AVS_EEL_INITINST();
       double max_d=sqrt((double)(w*w+h*h))/2.0;
       double divmax_d=1.0/max_d;
@@ -434,7 +434,7 @@ int C_THISCLASS::smp_begin(int max_threads, char visdata[2][2][576], int isBeat,
       double *py = registerVar("y");
       double *pw = registerVar("sw");
       double *ph = registerVar("sh");
-      int codehandle=0;
+      NSEEL_CODEHANDLE codehandle=0;
       int offs=0;
       int is_rect = trans_effect == 32767 ? rectangular : descriptions[trans_effect].uses_rect;
       *pw=w;

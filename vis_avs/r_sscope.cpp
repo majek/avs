@@ -65,11 +65,11 @@ class C_THISCLASS : public C_RBASE {
 
     int color_pos;
 
-    int AVS_EEL_CONTEXTNAME;
+    NSEEL_VMCTX AVS_EEL_CONTEXTNAME;
     double *var_b, *var_x, *var_y, *var_i, *var_n, *var_v, *var_w, *var_h, *var_red, *var_green, *var_blue;
     double *var_skip, *var_linesize, *var_drawmode;
 		int inited;
-    int codehandle[4];
+    NSEEL_CODEHANDLE codehandle[4];
     int need_recompile;
     CRITICAL_SECTION rcs;
 };

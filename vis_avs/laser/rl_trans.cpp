@@ -56,7 +56,7 @@ class C_THISCLASS : public C_RBASE {
     void dopoint(float &x, float &y, char visdata[2][2][576], int &color);
 
     varType vars[EVAL_MAX_VARS];
-    int codehandle,codehandle_b,codehandle_i,codehandle_f;
+    NSEEL_CODEHANDLE codehandle,codehandle_b,codehandle_i,codehandle_f;
     double *v_d;
     double *v_r;
     double *v_x;
